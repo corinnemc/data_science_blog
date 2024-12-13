@@ -1,0 +1,30 @@
+---
+title: "About"
+image: profile.jpeg
+about:
+  template: broadside
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/corinne-mccumber-84391b190/
+    - icon: github
+      text: Github
+      href: https://github.com/corinnemc
+
+---
+
+Hello! My name is Corinne (pronounced curr-inn), and my pronouns are she/her or they/them.
+
+## School
+
+I've nearly completed my Master's in Library and Information Science at the University of Illinois Urbana-Champaign. I've leaned into the technical aspects of my program, taking classes such as Data Visualization, Machine Learning Pipelines Using Cloud-Based Platforms, Database Design and Prototyping, and more. I also have a B.A. in English and Medieval Studies (yes, really) from the University of Minnesota Morris.
+
+## Work
+
+I work best when I can do fiddly data science tasks and make a positive, tangible impact on people's lives. 
+
+I am a service coordinator at a non-profit that helps seniors live independently, and I am a research assistant with the [Information Quality Lab](https://infoqualitylab.org/). Our work, ["Reassessment of the Agreement in Retraction Indexing Across 4 Multidisciplinary Sources: Crossref, Retraction Watch, Scopus, and Web of Science"](https://doi.org/10.5281/zenodo.14004526), was recently presented at the [ASIS&T MET-STI 2024 Workshop](https://ischool.illinois.edu/news-events/news/2024/11/schneider-group-present-asist-workshop). The paper, for which I am second author, won the *Best Student Paper* award.
+
+## Hobbies
+
+When I'm not doing school-work or work-work, I like to go rock climbing, embroider, and teach my cat new tricks.

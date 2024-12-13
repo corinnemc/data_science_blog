@@ -1,0 +1,21 @@
+project:
+  type: website
+
+website:
+  title: "Yet Another Data Science Blog"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        text: Github
+        href: https://github.com/corinnemc
+      - icon: linkedin
+        text: LinkedIn
+        href: https://www.linkedin.com/in/corinne-mccumber-84391b190/
+format:
+  html:
+    theme: cerulean
+    css: styles.css
+
+
+

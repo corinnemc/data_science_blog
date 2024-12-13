@@ -1,0 +1,149 @@
+[
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html",
+    "href": "posts/Job-dataset-analysis/index.html",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "",
+    "text": "Time for everyone’s favorite: data cleaning."
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#dataset-information",
+    "href": "posts/Job-dataset-analysis/index.html#dataset-information",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Dataset information",
+    "text": "Dataset information\nThe dataset is called the “Job description dataset”, and it was downloaded from Kaggle. It is listed under a CC0 license, and a formal citation can be found below. According to the creator, Ravender Singh Rana, the dataset is “a rich collection of artificially generated job postings designed to emulate the structure and content of real-world job listings.”\nThe dataset contains 1,615,940 rows and 23 columns. Each row represents a fabricated job listing. Columns of interest include:\n\nJob ID: Unique identifier for each fabricated job listing\nExperience: Preferred years of experience for the job, in the format “xx to yy Years”\nQualifications: Education requirements for this job\nSalary Range: Range of compensation, in the format “$xxK-$yyK”\nWork Type: Type of employment, including Full-Time, Contract, Temporary, etc."
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#setup",
+    "href": "posts/Job-dataset-analysis/index.html#setup",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Setup",
+    "text": "Setup\nRun the following libraries.\n\nlibrary(tidyverse)\nlibrary(ggplot2)\nlibrary(janitor)\n\nAnd read in the data.\n\ndata &lt;- read_csv(\"./data/job_descriptions.csv\")\n\nglimpse(data)\n\nRows: 1,615,940\nColumns: 23\n$ `Job Id`           &lt;dbl&gt; 1.089844e+15, 3.984541e+14, 4.816401e+14, 6.881927e…\n$ Experience         &lt;chr&gt; \"5 to 15 Years\", \"2 to 12 Years\", \"0 to 12 Years\", …\n$ Qualifications     &lt;chr&gt; \"M.Tech\", \"BCA\", \"PhD\", \"PhD\", \"MBA\", \"MCA\", \"PhD\",…\n$ `Salary Range`     &lt;chr&gt; \"$59K-$99K\", \"$56K-$116K\", \"$61K-$104K\", \"$65K-$91K…\n$ location           &lt;chr&gt; \"Douglas\", \"Ashgabat\", \"Macao\", \"Porto-Novo\", \"Sant…\n$ Country            &lt;chr&gt; \"Isle of Man\", \"Turkmenistan\", \"Macao SAR, China\", …\n$ latitude           &lt;dbl&gt; 54.2361, 38.9697, 22.1987, 9.3077, -35.6751, 50.503…\n$ longitude          &lt;dbl&gt; -4.5481, 59.5563, 113.5439, 2.3158, -71.5429, 4.469…\n$ `Work Type`        &lt;chr&gt; \"Intern\", \"Intern\", \"Temporary\", \"Full-Time\", \"Inte…\n$ `Company Size`     &lt;dbl&gt; 26801, 100340, 84525, 129896, 53944, 23196, 26119, …\n$ `Job Posting Date` &lt;date&gt; 2022-04-24, 2022-12-19, 2022-09-14, 2023-02-25, 20…\n$ Preference         &lt;chr&gt; \"Female\", \"Female\", \"Male\", \"Female\", \"Female\", \"Ma…\n$ `Contact Person`   &lt;chr&gt; \"Brandon Cunningham\", \"Francisco Larsen\", \"Gary Gib…\n$ Contact            &lt;chr&gt; \"001-381-930-7517x737\", \"461-509-4216\", \"9687619505…\n$ `Job Title`        &lt;chr&gt; \"Digital Marketing Specialist\", \"Web Developer\", \"O…\n$ Role               &lt;chr&gt; \"Social Media Manager\", \"Frontend Web Developer\", \"…\n$ `Job Portal`       &lt;chr&gt; \"Snagajob\", \"Idealist\", \"Jobs2Careers\", \"FlexJobs\",…\n$ `Job Description`  &lt;chr&gt; \"Social Media Managers oversee an organizations soc…\n$ Benefits           &lt;chr&gt; \"{'Flexible Spending Accounts (FSAs), Relocation As…\n$ skills             &lt;chr&gt; \"Social media platforms (e.g., Facebook, Twitter, I…\n$ Responsibilities   &lt;chr&gt; \"Manage and grow social media accounts, create enga…\n$ Company            &lt;chr&gt; \"Icahn Enterprises\", \"PNC Financial Services Group\"…\n$ `Company Profile`  &lt;chr&gt; \"{\\\"Sector\\\":\\\"Diversified\\\",\\\"Industry\\\":\\\"Diversi…"
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#data-cleaning",
+    "href": "posts/Job-dataset-analysis/index.html#data-cleaning",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Data cleaning",
+    "text": "Data cleaning\nComplete data transformations, primarily to extract numbers such as salary range and experience from character strings. This shows off the wonderful world of regex.\n\ncleaned_data &lt;- data %&gt;%\n  # Clean column names\n  clean_names() %&gt;%\n  \n  # Break experience column into minimum and maximum experience\n  mutate(\n    experience_min = str_extract(experience, \"^[[:digit:]]+\"),\n    experience_max = str_extract(experience, \"[[:digit:]]+ Years\"),\n    experience_max = str_extract(experience_max, \"^[[:digit:]]+\")\n  ) %&gt;%\n  mutate(\n    experience_min = as.numeric(experience_min),\n    experience_max = as.numeric(experience_max)\n  ) %&gt;%\n  relocate(c(experience_min, experience_max), .after=experience) %&gt;%\n\n  # Break qualifications into broader categories\n  mutate(\n    education_level = if_else(str_detect(qualifications, \"^B\"), \"Bachelor's\", NA),\n    education_level = if_else(str_detect(qualifications, \"^M\"), \"Master's\", education_level),\n    education_level = if_else(str_detect(qualifications, \"^Ph\"), \"Doctorate\", education_level)\n  ) %&gt;%\n  relocate(education_level, .after = qualifications) %&gt;%\n\n  # Break salary_range into minimum and maximum salary\n  mutate(\n    salary_min = str_extract(salary_range, \"^\\\\$[[:digit:]]+K\"),\n    salary_max = str_extract(salary_range, \"-\\\\$[[:digit:]]+K\"),\n    salary_min = str_extract(salary_min, \"[[:digit:]]+\"),\n    salary_max = str_extract(salary_max, \"[[:digit:]]+\")\n  ) %&gt;%\n  mutate(\n    salary_min = as.numeric(salary_min),\n    salary_max = as.numeric(salary_max)\n  ) %&gt;%\n  relocate(c(salary_min, salary_max), .after=salary_range)\n\nglimpse(cleaned_data)\n\nRows: 1,615,940\nColumns: 28\n$ job_id           &lt;dbl&gt; 1.089844e+15, 3.984541e+14, 4.816401e+14, 6.881927e+1…\n$ experience       &lt;chr&gt; \"5 to 15 Years\", \"2 to 12 Years\", \"0 to 12 Years\", \"4…\n$ experience_min   &lt;dbl&gt; 5, 2, 0, 4, 1, 4, 3, 2, 2, 1, 3, 4, 3, 1, 1, 4, 5, 0,…\n$ experience_max   &lt;dbl&gt; 15, 12, 12, 11, 12, 12, 15, 8, 9, 10, 10, 12, 15, 8, …\n$ qualifications   &lt;chr&gt; \"M.Tech\", \"BCA\", \"PhD\", \"PhD\", \"MBA\", \"MCA\", \"PhD\", \"…\n$ education_level  &lt;chr&gt; \"Master's\", \"Bachelor's\", \"Doctorate\", \"Doctorate\", \"…\n$ salary_range     &lt;chr&gt; \"$59K-$99K\", \"$56K-$116K\", \"$61K-$104K\", \"$65K-$91K\",…\n$ salary_min       &lt;dbl&gt; 59, 56, 61, 65, 64, 59, 63, 65, 65, 60, 57, 64, 65, 5…\n$ salary_max       &lt;dbl&gt; 99, 116, 104, 91, 87, 93, 103, 102, 102, 80, 104, 98,…\n$ location         &lt;chr&gt; \"Douglas\", \"Ashgabat\", \"Macao\", \"Porto-Novo\", \"Santia…\n$ country          &lt;chr&gt; \"Isle of Man\", \"Turkmenistan\", \"Macao SAR, China\", \"B…\n$ latitude         &lt;dbl&gt; 54.2361, 38.9697, 22.1987, 9.3077, -35.6751, 50.5039,…\n$ longitude        &lt;dbl&gt; -4.5481, 59.5563, 113.5439, 2.3158, -71.5429, 4.4699,…\n$ work_type        &lt;chr&gt; \"Intern\", \"Intern\", \"Temporary\", \"Full-Time\", \"Intern…\n$ company_size     &lt;dbl&gt; 26801, 100340, 84525, 129896, 53944, 23196, 26119, 40…\n$ job_posting_date &lt;date&gt; 2022-04-24, 2022-12-19, 2022-09-14, 2023-02-25, 2022…\n$ preference       &lt;chr&gt; \"Female\", \"Female\", \"Male\", \"Female\", \"Female\", \"Male…\n$ contact_person   &lt;chr&gt; \"Brandon Cunningham\", \"Francisco Larsen\", \"Gary Gibso…\n$ contact          &lt;chr&gt; \"001-381-930-7517x737\", \"461-509-4216\", \"9687619505\",…\n$ job_title        &lt;chr&gt; \"Digital Marketing Specialist\", \"Web Developer\", \"Ope…\n$ role             &lt;chr&gt; \"Social Media Manager\", \"Frontend Web Developer\", \"Qu…\n$ job_portal       &lt;chr&gt; \"Snagajob\", \"Idealist\", \"Jobs2Careers\", \"FlexJobs\", \"…\n$ job_description  &lt;chr&gt; \"Social Media Managers oversee an organizations socia…\n$ benefits         &lt;chr&gt; \"{'Flexible Spending Accounts (FSAs), Relocation Assi…\n$ skills           &lt;chr&gt; \"Social media platforms (e.g., Facebook, Twitter, Ins…\n$ responsibilities &lt;chr&gt; \"Manage and grow social media accounts, create engagi…\n$ company          &lt;chr&gt; \"Icahn Enterprises\", \"PNC Financial Services Group\", …\n$ company_profile  &lt;chr&gt; \"{\\\"Sector\\\":\\\"Diversified\\\",\\\"Industry\\\":\\\"Diversifi…"
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#visualization-1-salary-range-and-work-type",
+    "href": "posts/Job-dataset-analysis/index.html#visualization-1-salary-range-and-work-type",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Visualization 1: Salary range and work type",
+    "text": "Visualization 1: Salary range and work type\nLet’s see if we can uncover how realistic this data is. The visualization below shows the range of minimum and maximum salaries, faceted by work type.\n\ncleaned_data %&gt;%\n  ggplot() +\n  geom_boxplot(aes(x = work_type, y = salary_min, fill = work_type)) +\n  geom_boxplot(aes(x = work_type, y = salary_max, fill = work_type)) +\n  coord_flip() +\n  labs(\n    y = \"Salary min and max in thousands of dollars\",\n    x = \"Work category\",\n    title = \"Boxplot of salary minimum and maximum\",\n    subtitle = \"Faceted by work type\"\n  ) +\n  theme(legend.position=\"none\") +\n  scale_fill_discrete(type = c(\n    `Temporary` = \"#b35806\",\n    `Part-Time` = \"#998ec3\",\n    `Intern` = \"#f1a340\",\n    `Full-Time` = \"#d8daeb\",\n    `Contract` = \"#542788\"\n  ))\n\n\n\n\n\n\n\n\nColors were chosen using ColorBrewer to ensure that they are legible for people who are colorblind. Given that, regardless of work type, all jobs have the same quartile breakdowns for minimum and maximum salary range, it’s safe to say that this was rather simply procedurally generated and therefore not of much use in the real world."
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#visualization-2-experience-and-education",
+    "href": "posts/Job-dataset-analysis/index.html#visualization-2-experience-and-education",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Visualization 2: Experience and education",
+    "text": "Visualization 2: Experience and education\nWhat about experience and education? In real life, we might expect that the higher the level of education, the fewer years of experience required.\n\ncleaned_data %&gt;%\n  ggplot() +\n  geom_density(aes(x = experience_min, fill = education_level)) +\n  geom_density(aes(x = experience_max, fill = education_level)) +\n  facet_wrap( ~ factor(\n    education_level,\n    levels = c(\"Bachelor's\", \"Master's\", \"Doctorate\")\n  )) +\n  theme(legend.position=\"none\") +\n  scale_fill_discrete(type = c(\n    `Bachelor's` = \"#b3cde3\",\n    `Master's` = \"#8c96c6\",\n    `Doctorate` = \"#88419d\"\n  )) +\n  labs(\n    y = \"Density\",\n    x = \"Experience minimums and maximums in years\",\n    title = \"Density plot of experience minimums and maximums\",\n    subtitle = \"Faceted by education level\"\n  ) \n\n\n\n\n\n\n\n\nColors were again chosen using ColorBrewer. Given that the experience levels have the same density patterns regardless of education level, this data also is not reflective of the real world. One additional insight is that more jobs were generated with a Bachelor’s requirement than with a Master’s requirement than with a Doctorate requirement."
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#conclusion",
+    "href": "posts/Job-dataset-analysis/index.html#conclusion",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "Conclusion",
+    "text": "Conclusion\nGiven the uniformity of data, this dataset appears to have use as a data cleaning exercise more than anything else."
+  },
+  {
+    "objectID": "posts/Job-dataset-analysis/index.html#references",
+    "href": "posts/Job-dataset-analysis/index.html#references",
+    "title": "Data Cleaning with a Job Description Dataset",
+    "section": "References",
+    "text": "References\nBrewer, C., Harrower, M., Sheesley, B., Woodruff, A., & Heyman, D. (2013). ColorBrewer: Color advice for maps. https://colorbrewer2.org/\nJon, P. (n.d.). Mathematician analyzing data [Graphic]. Wikimedia Commons. Retrieved December 12, 2024, from https://commons.wikimedia.org/wiki/File:Mathematician_analyzing_data._-DPLA-_60af5ced0800f6f7d6c99b5587a9ae0e.jpg\nRana, R. S. (2023). Job dataset: A comprehensive job dataset for data science, research, and analysis [Dataset]. Kaggle. https://doi.org/10.34740/kaggle/ds/3749643"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Yet Another Data Science Blog",
+    "section": "",
+    "text": "Data Visualziation with the Free Music Archive\n\n\n\n\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\nDec 12, 2024\n\n\nCorinne McCumber\n\n\n\n\n\n\n\n\n\n\n\n\nData Cleaning with a Job Description Dataset\n\n\n\n\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\nDec 12, 2024\n\n\nCorinne McCumber\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "Hello! My name is Corinne (pronounced curr-inn), and my pronouns are she/her or they/them."
+  },
+  {
+    "objectID": "about.html#school",
+    "href": "about.html#school",
+    "title": "About",
+    "section": "School",
+    "text": "School\nI’ve nearly completed my Master’s in Library and Information Science at the University of Illinois Urbana-Champaign. I’ve leaned into the technical aspects of my program, taking classes such as Data Visualization, Machine Learning Pipelines Using Cloud-Based Platforms, Database Design and Prototyping, and more. I also have a B.A. in English and Medieval Studies (yes, really) from the University of Minnesota Morris."
+  },
+  {
+    "objectID": "about.html#work",
+    "href": "about.html#work",
+    "title": "About",
+    "section": "Work",
+    "text": "Work\nI work best when I can do fiddly data science tasks and make a positive, tangible impact on people’s lives.\nI am a service coordinator at a non-profit that helps seniors live independently, and I am a research assistant with the Information Quality Lab. Our work, “Reassessment of the Agreement in Retraction Indexing Across 4 Multidisciplinary Sources: Crossref, Retraction Watch, Scopus, and Web of Science”, was recently presented at the ASIS&T MET-STI 2024 Workshop. The paper, for which I am second author, won the Best Student Paper award."
+  },
+  {
+    "objectID": "about.html#hobbies",
+    "href": "about.html#hobbies",
+    "title": "About",
+    "section": "Hobbies",
+    "text": "Hobbies\nWhen I’m not doing school-work or work-work, I like to go rock climbing, embroider, and teach my cat new tricks."
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html",
+    "href": "posts/FMA-tracks-analysis/index.html",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "",
+    "text": "Let’s create some data visualizations with R using metadata from the Free Music Archive."
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#dataset-information",
+    "href": "posts/FMA-tracks-analysis/index.html#dataset-information",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Dataset information",
+    "text": "Dataset information\nThe dataset is called “FMA: a dataset for music analysis”. Specifically, I will be investigating track (song) metadata from the Free Music Archive. The metadata dataset was downloaded from GitHub, and it is also archived in the Library of Congress. It is listed under a CC BY 4.0 License, and a formal citation can be found below. Many thanks to the dataset creators, Michaël Defferrard, Kirell Benzi, Pierre Vandergheynst, and Xavier Bresson. I’ve looked at this dataset before, though never in R!\nTracks.csv contains metadata for 106,574 tracks in the full Free Music Archive dataset. Each row represents one song, also called a track. Columns contain song metadata, and columns of interst are listed below. Metadata is not complete for all songs, and rows missing data of interest will be dropped.\nSelected columns (as they are labeled after cleaning process) are as follows:\n\nartist_latitude: Latitude information for a given artist, available for ~23% of the dataset.\nartist_longitude: Longitude information for a given artist, available for ~23% of the dataset\ntrack_bit_rate: Bit rate (number of bits per unit of time) of a track, commonly used as an indicator of audio quality.\ntrack_listens: Number of times a track has been listened to as of archiving"
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#setup",
+    "href": "posts/FMA-tracks-analysis/index.html#setup",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Setup",
+    "text": "Setup\nRun the following libraries.\n\nlibrary(tidyverse)\nlibrary(ggplot2)\nlibrary(janitor)\nlibrary(sf)\nif(!require(\"maps\")) {install.packages(\"maps\")}\nlibrary(maps)\nif(!require(\"rnaturalearth\")) {install.packages(\"rnaturalearth\")}\nlibrary(rnaturalearth)\n\nAnd load the needed data.\n\ndata &lt;- read_csv(\"./data/tracks.csv\") %&gt;%\n  select(1,22,23,25,34,48)"
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#data-cleaning",
+    "href": "posts/FMA-tracks-analysis/index.html#data-cleaning",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Data cleaning",
+    "text": "Data cleaning\nThe headers for this data were multi-line when imported, so they need to be combined and cleaned.\n\nclean_data &lt;- data %&gt;%\n  \n  # Fix column names\n  rename(\n    \"track_id\" = 1,\n    \"artist_id\" = 2,\n    \"artist_latitude\" = 3,\n    \"artist_longitude\" = 4,\n    \"track_bit_rate\" = 5,\n    \"track_listens\" = 6\n  ) %&gt;%\n  \n  # Remove extra rows from multi-line header\n  drop_na(track_id) %&gt;%\n\n  # Make all columns numeric for analysis\n  mutate(\n    track_id = as.numeric(track_id),\n    artist_id = as.numeric(artist_id),\n    artist_latitude = as.numeric(artist_latitude),\n    artist_longitude = as.numeric(artist_longitude),\n    track_bit_rate = as.numeric(track_bit_rate),\n    track_listens = as.numeric(track_listens)\n  )\n\nglimpse(clean_data)\n\nRows: 106,574\nColumns: 6\n$ track_id         &lt;dbl&gt; 2, 3, 5, 10, 20, 26, 30, 46, 48, 134, 135, 136, 137, …\n$ artist_id        &lt;dbl&gt; 1, 1, 1, 6, 4, 4, 4, 4, 4, 1, 52, 52, 53, 53, 54, 54,…\n$ artist_latitude  &lt;dbl&gt; 40.05832, 40.05832, 40.05832, NA, 51.89593, 51.89593,…\n$ artist_longitude &lt;dbl&gt; -74.405661, -74.405661, -74.405661, NA, 0.891874, 0.8…\n$ track_bit_rate   &lt;dbl&gt; 256000, 256000, 256000, 192000, 256000, 256000, 25600…\n$ track_listens    &lt;dbl&gt; 1293, 514, 1151, 50135, 361, 193, 612, 171, 173, 943,…\n\n\nNow we can make some quick visualizations!"
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#visualization-1-world-map-of-artists",
+    "href": "posts/FMA-tracks-analysis/index.html#visualization-1-world-map-of-artists",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Visualization 1: World map of artists",
+    "text": "Visualization 1: World map of artists\nThe code below generates a world map (using the Robinson projection) showing the latitude and longitude for all artists who included that information in the dataset. Notably, this is only about 23% of the artists listed.\n\ncrs_use &lt;- \"+proj=robin\"\n\npoint_data_sf &lt;- clean_data %&gt;%\n  select(artist_id, artist_longitude, artist_latitude) %&gt;%\n  drop_na() %&gt;%\n  st_as_sf(coords = c(\"artist_longitude\", \"artist_latitude\"), crs = 4326) %&gt;%\n  st_transform(crs = crs_use)\n  \nworld_sf &lt;- ne_countries(returnclass = \"sf\") %&gt;%\n  st_transform(crs = crs_use)\n\nggplot(data = NULL) +\n  geom_sf(\n    data = world_sf,\n    color = \"#e0f3db\",\n    fill = \"#a8ddb5\"\n  ) +\n  coord_sf(crs = crs_use) +\n  geom_sf(\n    data = point_data_sf,\n    color = \"#000000\",\n    size = 1,\n    alpha = 0.25\n  ) +\n  labs(\n    x = NULL,\n    y = NULL,\n    title = \"World map of artist locations\",\n    subtitle = \"Using a Robinson Projection\",\n  ) +\n  theme(panel.background = element_rect(fill = '#43a2ca'))\n\n\n\n\n\n\n\n\nThis visualization tells us that our data can only be generalized for the US and Europe. Colors were chosen using ColorBrewer to ensure that they are legible for people who are colorblind. A Robinson projection was used to more naturally portray the entire earth on one image. It is “neither equal-area nor conformal”, a compromise (“Robinson projection”, n.d.)"
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#visualization-2-audio-quality-and-track-popularity",
+    "href": "posts/FMA-tracks-analysis/index.html#visualization-2-audio-quality-and-track-popularity",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Visualization 2: Audio quality and track popularity",
+    "text": "Visualization 2: Audio quality and track popularity\nThe code below generates a scatter plot of track listens vs. track bit rate. Bit rate is a common indicator of audio quality. I am curious about whether better audio quality makes a track more popular.\n\nbit_listen_data &lt;- clean_data %&gt;%\n  select(track_id, track_bit_rate, track_listens) %&gt;%\n  drop_na()\n\nggplot(\n  bit_listen_data,\n  aes(x = track_bit_rate, y = track_listens)\n) +\n  geom_point(color = \"#56B4E9\", alpha = 0.15) +\n  geom_smooth(method = lm, se = FALSE, color = '#000000', size = .25) +\n  geom_vline(\n    aes(xintercept = 96000, color = 'Speech or low-quality streaming'),\n    linetype = 'dashed'\n  ) +\n  geom_vline(\n    aes(xintercept = 192000, color = 'Medium quality'),\n    linetype = 'dotted'\n  ) +\n  geom_vline(\n    aes(xintercept = 256000, color = 'High quality'),\n    linetype = 'dotdash'\n  ) +\n  geom_vline(\n    aes(xintercept = 320000,color = 'Highest supported by MP3'),\n    linetype = 'twodash'\n  ) +\n  scale_color_manual(\n    name='Legend',\n    breaks = c(      \n      'Speech or low-quality streaming',\n      'Medium quality',\n      'High quality',\n      'Highest supported by MP3',\n      'Line of best fit'\n    ),\n    values=c(\n      'Speech or low-quality streaming'='#009E73',\n      'Medium quality'='#CC79A7',\n      'High quality'= '#D55E00',\n      'Highest supported by MP3' = '#F0E442',\n      'Line of best fit'='#000000'\n  )) +\n  labs(\n    x = \"Bits per second\",\n    y = \"Number of listens\",\n    title = \"Track listens vs. bit rate\",\n    subtitle = \"Linear best fit shown in black\"\n  ) +\n  theme_bw()\n\n\n\n\n\n\n\n\nColors were taken from the Wong color palette as listed on Coloring for Colorblindness to be accessible to those who are colorblind. The linear best fit line shows that there is a negligible relationship between a track’s bit rate and its listens."
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#conclusions",
+    "href": "posts/FMA-tracks-analysis/index.html#conclusions",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "Conclusions",
+    "text": "Conclusions\nBy completing some straightforward data visualization, we were able to check the geographic distribution of this dataset and to test a hypothesis about audio quality and song popularity. A good start to the exploratory data analysis!"
+  },
+  {
+    "objectID": "posts/FMA-tracks-analysis/index.html#references",
+    "href": "posts/FMA-tracks-analysis/index.html#references",
+    "title": "Data Visualziation with the Free Music Archive",
+    "section": "References",
+    "text": "References\nAlikhan, N.-F. (2022, May 20). Variations on map projections in R. Happykhan. https://happykhan.com/posts/map-projections-in-r/\nBit rate. (n.d.). In Wikipedia. Retrieved December 12, 2024, from https://en.wikipedia.org/w/index.php?title=Bit_rate&oldid=1261412342\nBrewer, C., Harrower, M., Sheesley, B., Woodruff, A., & Heyman, D. (2013). ColorBrewer: Color advice for maps. https://colorbrewer2.org/\nDefferrard, M., Benzi, K., Vandergheynst, P., & Bresson, X. (2017). FMA: A dataset for music analysis [Dataset]. https://github.com/mdeff/fma.\nKobus, L. (2021). Sheet music EC2 [Graphic]. Wikimedia Commons. https://commons.wikimedia.org/wiki/File:Sheet_music_EC2.jpg\nNichols, D. (n.d.). Coloring for Colorblindness. Retrieved December 12, 2024, from http://www.davidmathlogic.com/colorblind/\nRobinson projection. (n.d.). In Wikipedia. Retrieved December 12, 2024, from https://en.wikipedia.org/w/index.php?title=Robinson_projection&oldid=1255419564"
+  }
+]

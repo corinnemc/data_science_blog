@@ -1,0 +1,158 @@
+---
+title: "Data Cleaning with a Job Description Dataset"
+author: "Corinne McCumber"
+date: "2024-12-12"
+categories: [code, analysis]
+image: "Mathematician_analyzing_data.jpg"
+---
+
+Time for everyone's favorite: data cleaning.
+
+## Dataset information
+
+The dataset is called the "Job description dataset", and it was downloaded from [Kaggle](https://www.kaggle.com/datasets/ravindrasinghrana/job-description-dataset). It is listed under a CC0 license, and a formal citation can be found below. According to the creator, Ravender Singh Rana, the dataset is "a rich collection of artificially generated job postings designed to emulate the structure and content of real-world job listings."
+
+The dataset contains 1,615,940 rows and 23 columns. Each row represents a fabricated job listing. Columns of interest include:
+
+- `Job ID`: Unique identifier for each fabricated job listing
+- `Experience`: Preferred years of experience for the job, in the format "xx to yy Years"
+- `Qualifications`: Education requirements for this job
+- `Salary Range`: Range of compensation, in the format "\$xxK-\$yyK"
+- `Work Type`: Type of employment, including Full-Time, Contract, Temporary, etc.
+
+## Setup
+
+Run the following libraries.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(fig.retina = 3, dpi = 300, fig.width = 6, fig.asp = 0.618, out.width = "80%")
+```
+
+```{r libraries}
+library(tidyverse)
+library(ggplot2)
+library(janitor)
+```
+
+And read in the data.
+
+``` {r load-data}
+data <- read_csv("./data/job_descriptions.csv")
+
+glimpse(data)
+```
+
+## Data cleaning 
+
+Complete data transformations, primarily to extract numbers such as salary range and experience from character strings. This shows off the wonderful world of regex.
+
+```{r data-cleaning}
+cleaned_data <- data %>%
+  # Clean column names
+  clean_names() %>%
+  
+  # Break experience column into minimum and maximum experience
+  mutate(
+    experience_min = str_extract(experience, "^[[:digit:]]+"),
+    experience_max = str_extract(experience, "[[:digit:]]+ Years"),
+    experience_max = str_extract(experience_max, "^[[:digit:]]+")
+  ) %>%
+  mutate(
+    experience_min = as.numeric(experience_min),
+    experience_max = as.numeric(experience_max)
+  ) %>%
+  relocate(c(experience_min, experience_max), .after=experience) %>%
+
+  # Break qualifications into broader categories
+  mutate(
+    education_level = if_else(str_detect(qualifications, "^B"), "Bachelor's", NA),
+    education_level = if_else(str_detect(qualifications, "^M"), "Master's", education_level),
+    education_level = if_else(str_detect(qualifications, "^Ph"), "Doctorate", education_level)
+  ) %>%
+  relocate(education_level, .after = qualifications) %>%
+
+  # Break salary_range into minimum and maximum salary
+  mutate(
+    salary_min = str_extract(salary_range, "^\\$[[:digit:]]+K"),
+    salary_max = str_extract(salary_range, "-\\$[[:digit:]]+K"),
+    salary_min = str_extract(salary_min, "[[:digit:]]+"),
+    salary_max = str_extract(salary_max, "[[:digit:]]+")
+  ) %>%
+  mutate(
+    salary_min = as.numeric(salary_min),
+    salary_max = as.numeric(salary_max)
+  ) %>%
+  relocate(c(salary_min, salary_max), .after=salary_range)
+
+glimpse(cleaned_data)
+```
+
+## Visualization 1: Salary range and work type
+
+Let's see if we can uncover how realistic this data is. The visualization below shows the range of minimum and maximum salaries, faceted by work type.
+
+```{r salary-and-work-visualization, fig.alt = "Box plot of salary minimum amounds and maximum amounts, faceted by work type, where the exact same quartiles are shown for each work type, indicating that this is information is not reflective of real world salaries."}
+cleaned_data %>%
+  ggplot() +
+  geom_boxplot(aes(x = work_type, y = salary_min, fill = work_type)) +
+  geom_boxplot(aes(x = work_type, y = salary_max, fill = work_type)) +
+  coord_flip() +
+  labs(
+    y = "Salary min and max in thousands of dollars",
+    x = "Work category",
+    title = "Boxplot of salary minimum and maximum",
+    subtitle = "Faceted by work type"
+  ) +
+  theme(legend.position="none") +
+  scale_fill_discrete(type = c(
+    `Temporary` = "#b35806",
+    `Part-Time` = "#998ec3",
+    `Intern` = "#f1a340",
+    `Full-Time` = "#d8daeb",
+    `Contract` = "#542788"
+  ))
+```
+
+Colors were chosen using [ColorBrewer](https://colorbrewer2.org) to ensure that they are legible for people who are colorblind. Given that, regardless of work type, all jobs have the same quartile breakdowns for minimum and maximum salary range, it's safe to say that this was rather simply procedurally generated and therefore not of much use in the real world.
+
+## Visualization 2: Experience and education
+
+What about experience and education? In real life, we might expect that the higher the level of education, the fewer years of experience required. 
+
+``` {r exp-and-edu-visualization, fig.alt = "Density plot of experience minimum and maximum faceted by education level, where the exact same density peaks are shown regardless of education level, indicating that real-world conclusions cannot be drawn from this data."}
+cleaned_data %>%
+  ggplot() +
+  geom_density(aes(x = experience_min, fill = education_level)) +
+  geom_density(aes(x = experience_max, fill = education_level)) +
+  facet_wrap( ~ factor(
+    education_level,
+    levels = c("Bachelor's", "Master's", "Doctorate")
+  )) +
+  theme(legend.position="none") +
+  scale_fill_discrete(type = c(
+    `Bachelor's` = "#b3cde3",
+    `Master's` = "#8c96c6",
+    `Doctorate` = "#88419d"
+  )) +
+  labs(
+    y = "Density",
+    x = "Experience minimums and maximums in years",
+    title = "Density plot of experience minimums and maximums",
+    subtitle = "Faceted by education level"
+  ) 
+```
+
+Colors were again chosen using [ColorBrewer](https://colorbrewer2.org). Given that the experience levels have the same density patterns regardless of education level, this data also is not reflective of the real world. One additional insight is that more jobs were generated with a Bachelor's requirement than with a Master's requirement than with a Doctorate requirement. 
+
+## Conclusion
+
+Given the uniformity of data, this dataset appears to have use as a data cleaning exercise more than anything else.
+
+## References
+
+Brewer, C., Harrower, M., Sheesley, B., Woodruff, A., & Heyman, D. (2013). ColorBrewer: Color advice for maps. https://colorbrewer2.org/
+
+Jon, P. (n.d.). Mathematician analyzing data [Graphic]. Wikimedia Commons. Retrieved December 12, 2024, from https://commons.wikimedia.org/wiki/File:Mathematician_analyzing_data._-_DPLA_-_60af5ced0800f6f7d6c99b5587a9ae0e.jpg
+
+Rana, R. S. (2023). Job dataset: A comprehensive job dataset for data science, research, and analysis [Dataset]. Kaggle. https://doi.org/10.34740/kaggle/ds/3749643
